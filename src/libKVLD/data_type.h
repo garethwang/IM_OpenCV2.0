@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <cstring>
+#include <cmath>
 
 #define INDEX(i,j) ((i) * m_cols + (j))
 
