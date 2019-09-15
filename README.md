@@ -26,6 +26,10 @@ The major stages of image matching consist of generating features, matching desc
 
 - OpenCV
 
+## How to use
+
+Read **DEMO.md**.
+
 ## Author
 
 Gareth Wang  
