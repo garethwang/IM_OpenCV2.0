@@ -195,8 +195,13 @@ void ImageMatcher::PruneMatchesByLPM(
 	std::vector<cv::Point2d> refer_pts(initial_matches.size());
 
 	for (size_t i = 0; i < initial_matches.size(); ++i) {
-		query_pts[i] = cv::Point2d(query_kpts_[initial_matches[i].queryIdx].pt);
-		refer_pts[i] = cv::Point2d(refer_kpts_[initial_matches[i].trainIdx].pt);
+		cv::Point2d pt;
+		pt.x = (double)query_kpts_[initial_matches[i].queryIdx].pt.x;
+		pt.y = (double)query_kpts_[initial_matches[i].queryIdx].pt.y;
+		query_pts[i] = pt;
+		pt.x = (double)refer_kpts_[initial_matches[i].trainIdx].pt.x;
+		pt.y = (double)refer_kpts_[initial_matches[i].trainIdx].pt.y;
+		refer_pts[i] = pt;
 	}
 
 	// Iteration 1
