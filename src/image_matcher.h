@@ -115,7 +115,7 @@ public:
 		std::vector<cv::Point2f>& points1) const;
 
 	/**
-	 * @brief  Get \f$k\f$ nearest neighbor distances.
+	 * @brief  Gets \f$k\f$ nearest neighbor distances.
 	 *
 	 * @return void 
 	 * @param  knn_distances [out] \f$k\f$ nearest neighbor distances.
