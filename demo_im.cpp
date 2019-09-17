@@ -39,7 +39,6 @@ int main() {
 			+ dst_points[i], CV_RGB(0, 255, 0), 1, 16);
 	}
 	
-	cv::imwrite(std::string(SOURCE_DIR) + "/data/result.jpg", concat_img);
 	cv::namedWindow("matching result", CV_WINDOW_NORMAL);
 	cv::resizeWindow("matching result", 1000, 500);
 	cv::imshow("matching result", concat_img);
