@@ -18,8 +18,8 @@ The major stages of image matching consist of generating features, matching desc
    - BruteForce
    - FlannBased
  - Pruning matches
-   - GMS
    - Ratio test
+   - GMS
    - LPM
 
 ## Requirement
