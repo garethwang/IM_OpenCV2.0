@@ -26,7 +26,7 @@ $ make
 
 ```
 $ cd ..
-$ ./build/demo_im ./data/biscuit1.jpg ./data/biscuit2.jpg
+$ ./build/demo_im
 ```
 
 ## Windows
@@ -46,16 +46,32 @@ $ cmake-gui ../
 - Click on Configure again.
 - Click on Generate.
 - Close the cmake-gui.
+- Debug
 
 ```
 $ cd ..
 $ cmake --build build
 ```
 
-### How to run
+- Release
 
 ```
-$ ./build/Debug/demo_im.exe ./data/biscuit1.jpg ./data/biscuit2.jpg
+$ cd ..
+$ cmake --build build --config Release
+```
+
+### How to run
+
+- Debug
+
+```
+$ ./build/Debug/demo_im.exe
+```
+
+- Release
+
+```
+$ ./build/Release/demo_im.exe
 ```
 
 ## Result
