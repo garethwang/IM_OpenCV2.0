@@ -2,8 +2,6 @@
 #include <opencv2/nonfree/nonfree.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include "./lib_akaze/AKAZE.h"
-#include "./libGMS/gms_matcher.h"
-#include "./libLPM/lpm_matcher.h"
 
 static void ExtractAkazeFeatures(const cv::Mat& img,
 	std::vector<cv::KeyPoint>& kpts, cv::Mat& desc) {
@@ -33,11 +31,9 @@ ImageMatcher::ImageMatcher() {}
 ImageMatcher::~ImageMatcher() {}
 
 ImageMatcher::ImageMatcher(const cv::Mat& img0, const cv::Mat& img1,
-	FeatureType method1, MatcherType method2, PrunerType method3,
-	bool sorted_matches, int knn)
+	FeatureType method1, MatcherType method2, int knn)
 	:query_image_(img0), refer_image_(img1), feature_method_(method1),
-	matcher_method_(method2), pruner_method_(method3),
-	sorted_matches_(sorted_matches) {
+	matcher_method_(method2) {
 
 	ExtractFeatures();
 	MatchFeatures(knn);
@@ -150,82 +146,7 @@ void ImageMatcher::ExtractFeatures() {
 	refer_des_.convertTo(refer_des_, CV_32F);
 }
 
-void ImageMatcher::PruneMatchesByRatioTest(
-	const std::vector<std::vector<cv::DMatch> >& matches, const double ratio) {
-
-	for (size_t i = 0; i < matches.size(); ++i) {
-		if (matches[i][0].distance < matches[i][1].distance * ratio) {
-			matches_.push_back(matches[i][0]);
-		}
-	}
-}
-
-void ImageMatcher::PruneMatchesByGMS(
-	const std::vector<std::vector<cv::DMatch> >& matches) {
-
-	std::vector<cv::DMatch> initial_matches;
-	for (size_t i = 0; i < matches.size(); ++i) {
-		initial_matches.push_back(matches[i][0]);
-	}
-
-	// gms matcher
-	GMS_Matcher gms_matcher(query_kpts_, query_image_.size(),
-		refer_kpts_, refer_image_.size(), initial_matches, cv::Size(15, 15), 6);
-
-	std::vector<bool> labels;
-	gms_matcher.GetInlierMask(labels, true, true);
-
-	for (size_t i = 0; i < labels.size(); ++i) {
-		if (labels[i]) {
-			matches_.push_back(initial_matches[i]);
-		}
-	}
-
-}
-
-void ImageMatcher::PruneMatchesByLPM(
-	const std::vector<std::vector<cv::DMatch> >& matches) {
-
-	std::vector<cv::DMatch> initial_matches;
-	for (size_t i = 0; i < matches.size(); ++i) {
-		initial_matches.push_back(matches[i][0]);
-	}
-
-	std::vector<cv::Point2d> query_pts(initial_matches.size());
-	std::vector<cv::Point2d> refer_pts(initial_matches.size());
-
-	for (size_t i = 0; i < initial_matches.size(); ++i) {
-		cv::Point2d pt;
-		pt.x = (double)query_kpts_[initial_matches[i].queryIdx].pt.x;
-		pt.y = (double)query_kpts_[initial_matches[i].queryIdx].pt.y;
-		query_pts[i] = pt;
-		pt.x = (double)refer_kpts_[initial_matches[i].trainIdx].pt.x;
-		pt.y = (double)refer_kpts_[initial_matches[i].trainIdx].pt.y;
-		refer_pts[i] = pt;
-	}
-
-	// Iteration 1
-	LPM_Matcher lpm0(query_pts, refer_pts, 8, 0.8, 0.2);
-	cv::Mat cost0;
-	std::vector<bool> labels0;
-	lpm0.Match(cost0, labels0);
-
-	// Iteration 2
-	LPM_Matcher lpm1(query_pts, refer_pts, 8, 0.5, 0.2, labels0);
-	cv::Mat cost1;
-	std::vector<bool> labels1;
-	lpm1.Match(cost1, labels1);
-
-	for (size_t i = 0; i < labels1.size(); ++i) {
-		if (labels1[i]) {
-			matches_.push_back(initial_matches[i]);
-		}
-	}
-}
-
 void ImageMatcher::MatchFeatures(int knn) {
-
-	std::vector<std::vector<cv::DMatch> > initial_matches;
 
 	cv::Ptr<cv::DescriptorMatcher> matcher;
 	switch (matcher_method_)
@@ -237,38 +158,8 @@ void ImageMatcher::MatchFeatures(int knn) {
 		matcher = cv::DescriptorMatcher::create("FlannBased");
 		break;
 	}
-	matcher->knnMatch(query_des_, refer_des_, initial_matches, knn);
+	matcher->knnMatch(query_des_, refer_des_, matches_, knn);
 
-	double ratio = 0.8;
-	switch (pruner_method_) {
-	case PRUNER_RATIO:
-		CV_Assert(knn >= 2);
-		PruneMatchesByRatioTest(initial_matches, ratio);
-		break;
-	case PRUNER_GMS:
-		PruneMatchesByGMS(initial_matches);
-		break;
-	case PRUNER_LPM:
-		PruneMatchesByLPM(initial_matches);
-		break;
-	}
-
-	// Sorting.
-	if (sorted_matches_)
-		std::sort(matches_.begin(), matches_.end());
-
-	knn_distances_ = cv::Mat::zeros((int)matches_.size(), knn, CV_64F);
-	for (size_t i = 0; i < matches_.size(); ++i) {
-		query_mpts_.push_back(query_kpts_[matches_[i].queryIdx].pt);
-		refer_mpts_.push_back(refer_kpts_[matches_[i].trainIdx].pt);
-		/**
-		 * For EVSAC
-		 */
-		double* pdata = (double*)knn_distances_.ptr((int)i);
-		for (int j = 0; j < knn; ++j) {
-			pdata[j] = initial_matches[matches_[i].queryIdx][j].distance;
-		}
-	}
 }
 
 void ImageMatcher::GetKeyPoints(std::vector<cv::KeyPoint>& key_points0,
@@ -277,21 +168,6 @@ void ImageMatcher::GetKeyPoints(std::vector<cv::KeyPoint>& key_points0,
 	key_points1 = refer_kpts_;
 }
 
-void ImageMatcher::GetMatches(std::vector<cv::DMatch>& matches) const {
+void ImageMatcher::GetMatches(std::vector<std::vector<cv::DMatch> >& matches) const {
 	matches = matches_;
-}
-
-void ImageMatcher::GetMatchedPoints(std::vector<cv::Point2f>& points0,
-	std::vector<cv::Point2f>& points1) const {
-	points0 = query_mpts_;
-	points1 = refer_mpts_;
-}
-
-void ImageMatcher::GetKnnDistances(cv::Mat& knn_distances) const {
-	knn_distances_.copyTo(knn_distances);
-}
-
-void ImageMatcher::DrawPointMatches(cv::Mat& image) const {
-	cv::drawMatches(query_image_, query_kpts_, refer_image_, refer_kpts_,
-		matches_, image);
 }
