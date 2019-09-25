@@ -10,7 +10,7 @@ endif (CMAKE_COMPILER_IS_GNUCXX)
 
 add_definitions(-DSOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 2.0 REQUIRED)
 
 include_directories(${OpenCV_INCLUDE_DIRS})
 
